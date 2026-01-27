@@ -1,0 +1,18 @@
+[project]
+name = "gglisten"
+version = "0.1.0"
+description = "Local speech-to-text using whisper.cpp with Raycast integration"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "litellm",
+    "instructor",
+    "pydantic",
+]
+
+[project.scripts]
+gglisten = "gglisten.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
