@@ -8,7 +8,7 @@ from .config import get_config
 
 def notify(
     message: str,
-    title: str = "gglisten",
+    title: str = "gGlisten",
     sound: bool = True,
     sound_name: str | None = None,
 ):
@@ -53,11 +53,12 @@ def play_sound(sound_name: str):
 
 
 def recording_started():
-    """Sound for recording start - this is the signal to start talking"""
+    """Sound and notification for recording start"""
     config = get_config()
-    # Use direct afplay for immediate, reliable feedback
-    # The sound IS the signal - no toast needed (it's distracting)
+    # Play sound first - this is the immediate signal to start talking
     play_sound(config.start_sound)
+    # Then show toast (async, may appear slightly after sound)
+    notify("Recording...", sound=False)
 
 
 def recording_stopped(preview: str | None = None):

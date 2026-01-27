@@ -1,6 +1,6 @@
 #!/usr/bin/env -S /Users/spencerbraun/.cargo/bin/uv run --script
 
-# @raycast.title Dictation History
+# @raycast.title gGlisten History
 # @raycast.mode fullOutput
 # @raycast.schemaVersion 1
 # @raycast.icon 📜

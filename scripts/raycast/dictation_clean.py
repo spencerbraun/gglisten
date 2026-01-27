@@ -1,6 +1,6 @@
 #!/usr/bin/env -S /Users/spencerbraun/.cargo/bin/uv run --script
 
-# @raycast.title Clean Dictation
+# @raycast.title gGlisten Clean
 # @raycast.mode compact
 # @raycast.schemaVersion 1
 # @raycast.icon ✨
