@@ -27,18 +27,20 @@ def notify(
     sound_clause = f'sound name "{sound_name}"' if sound else ""
 
     script = f'display notification "{message}" with title "{title}" {sound_clause}'
-    subprocess.run(
+    subprocess.Popen(
         ["osascript", "-e", script],
-        check=False,  # Don't fail if notification fails
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
 
 
-def play_sound(sound_name: str):
+def play_sound(sound_name: str, blocking: bool = False):
     """
     Play a system sound.
 
     Args:
         sound_name: Name of sound file (without extension) from /System/Library/Sounds/
+        blocking: If True, wait for sound to finish. If False, play async.
     """
     config = get_config()
     if not config.enable_sounds:
@@ -46,10 +48,14 @@ def play_sound(sound_name: str):
 
     sound_path = Path(f"/System/Library/Sounds/{sound_name}.aiff")
     if sound_path.exists():
-        subprocess.run(
-            ["afplay", str(sound_path)],
-            check=False,
-        )
+        if blocking:
+            subprocess.run(["afplay", str(sound_path)], check=False)
+        else:
+            subprocess.Popen(
+                ["afplay", str(sound_path)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
 
 
 def recording_started():
