@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 # Add gglisten package to path
-GGLISTEN_ROOT = Path(__file__).parent.parent.parent
+GGLISTEN_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(GGLISTEN_ROOT))
 
 from gglisten.cli import toggle
