@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run --script
+#!/usr/bin/env -S /Users/spencerbraun/.cargo/bin/uv run --script
 
 # @raycast.title Dictation Status
 # @raycast.mode compact
