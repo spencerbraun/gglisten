@@ -108,6 +108,13 @@ def start_recording() -> bool:
         stderr=subprocess.DEVNULL,
     )
 
+    # Wait for sox to actually start recording (file created and has data)
+    # This prevents losing the first ~200ms of audio
+    for _ in range(20):  # Up to 200ms
+        time.sleep(0.01)
+        if config.audio_file.exists() and config.audio_file.stat().st_size > 0:
+            break
+
     # Save state
     _write_state(StateInfo(
         state=RecorderState.RECORDING,

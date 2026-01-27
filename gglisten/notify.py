@@ -53,9 +53,11 @@ def play_sound(sound_name: str):
 
 
 def recording_started():
-    """Notification and sound for recording start"""
+    """Sound for recording start - this is the signal to start talking"""
     config = get_config()
-    notify("Recording...", sound=True, sound_name=config.start_sound)
+    # Use direct afplay for immediate, reliable feedback
+    # The sound IS the signal - no toast needed (it's distracting)
+    play_sound(config.start_sound)
 
 
 def recording_stopped(preview: str | None = None):
