@@ -11,6 +11,10 @@ from .config import get_config
 def toggle():
     """Toggle recording on/off. Main entry point for dictation."""
     if recorder.is_recording():
+        # Print immediately so Raycast shows feedback
+        print("Transcribing...")
+        sys.stdout.flush()
+
         # Stop recording and transcribe
         success, duration = recorder.stop_recording()
         if not success:
@@ -59,9 +63,10 @@ def toggle():
         return 0
     else:
         # Start recording
+        print("Recording...")
+        sys.stdout.flush()
         if recorder.start_recording():
             notify.recording_started()
-            print("Recording...")
             return 0
         else:
             print("Failed to start recording")
