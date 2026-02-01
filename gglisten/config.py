@@ -6,17 +6,39 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
+def _load_user_config() -> dict:
+    """Load user config from ~/.config/gglisten/config.json if it exists"""
+    config_file = Path.home() / ".config/gglisten/config.json"
+    if config_file.exists():
+        try:
+            return json.loads(config_file.read_text())
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {}
+
+
+_user_config = _load_user_config()
+
+
+def _get_path(key: str, default: str | Path) -> Path:
+    """Get path from user config, env var, or default"""
+    if key in _user_config:
+        return Path(_user_config[key]).expanduser()
+    env_key = f"GGLISTEN_{key.upper()}"
+    if env_key in os.environ:
+        return Path(os.environ[env_key]).expanduser()
+    return Path(default).expanduser() if isinstance(default, str) else default
+
+
 @dataclass
 class Config:
     """Configuration for gglisten dictation system"""
 
     # Whisper model and CLI
-    # Override with GGLISTEN_WHISPER_MODEL and GGLISTEN_WHISPER_CLI env vars
-    whisper_model: Path = field(default_factory=lambda: Path(
-        os.environ.get("GGLISTEN_WHISPER_MODEL",
-                       Path.home() / ".local/share/gglisten/ggml-large-v3-turbo-q5_0.bin")))
-    whisper_cli: Path = field(default_factory=lambda: Path(
-        os.environ.get("GGLISTEN_WHISPER_CLI", "/opt/homebrew/bin/whisper-cli")))
+    whisper_model: Path = field(default_factory=lambda: _get_path(
+        "whisper_model", "~/.local/share/gglisten/ggml-large-v3-turbo-q5_0.bin"))
+    whisper_cli: Path = field(default_factory=lambda: _get_path(
+        "whisper_cli", "/opt/homebrew/bin/whisper-cli"))
     language: str = "en"
 
     # Audio recording
