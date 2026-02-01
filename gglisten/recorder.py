@@ -109,9 +109,9 @@ def start_recording() -> bool:
     )
 
     # Wait for sox to actually start recording (file created and has data)
-    # This prevents losing the first ~200ms of audio
-    for _ in range(20):  # Up to 200ms
-        time.sleep(0.01)
+    # Poll quickly to minimize delay while ensuring we don't lose audio
+    for _ in range(20):  # Up to 100ms
+        time.sleep(0.005)  # 5ms intervals
         if config.audio_file.exists() and config.audio_file.stat().st_size > 0:
             break
 

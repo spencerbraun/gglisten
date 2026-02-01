@@ -2,46 +2,73 @@
 
 import argparse
 import sys
+import time
 from datetime import datetime
 
-from . import recorder, transcriber, storage, clipboard, notify
 from .config import get_config
 
 
 def toggle():
     """Toggle recording on/off. Main entry point for dictation."""
+    from . import recorder  # Always needed
+
     if recorder.is_recording():
-        # Print immediately so Raycast shows feedback
-        print("Transcribing...")
+        # Lazy imports - only needed when stopping
+        from . import transcriber, storage, clipboard, notify
+
+        # Get duration before stopping
+        state = recorder._read_state()
+        duration_so_far = time.time() - state.start_time if state.start_time else 0
+
+        # Immediate feedback
+        print(f"Transcribing {duration_so_far:.1f}s...")
         sys.stdout.flush()
 
-        # Stop recording and transcribe
+        # Sound for stop
+        notify.recording_stopped()
+
+        # Stop recording
         success, duration = recorder.stop_recording()
         if not success:
             print("Failed to stop recording")
+            notify.transcription_error()
             return 1
 
         # Get the audio file
         audio_file = recorder.get_audio_file()
         if not audio_file:
             print("No audio file found")
+            notify.transcription_error()
             recorder.cleanup()
             return 1
 
         # Transcribe
         try:
             text = transcriber.transcribe(audio_file)
-        except Exception as e:
+        except FileNotFoundError as e:
+            print(f"Setup error: {e}")
+            notify.transcription_error()
+            recorder.cleanup()
+            return 1
+        except RuntimeError as e:
             print(f"Transcription failed: {e}")
+            notify.transcription_error()
+            recorder.cleanup()
+            return 1
+        except Exception as e:
+            print(f"Error: {e}")
+            notify.transcription_error()
             recorder.cleanup()
             return 1
 
         if not text:
             print("No speech detected")
+            notify.transcription_error("no_speech")
             recorder.cleanup()
             return 1
 
-        # Save to database
+        # Success - save, copy, notify
+        word_count = len(text.split())
         config = get_config()
         storage.save(
             text=text,
@@ -50,31 +77,35 @@ def toggle():
             model=str(config.whisper_model.name),
         )
 
-        # Copy to clipboard and paste
         clipboard.copy_and_paste(text)
-
-        # Notify
-        notify.recording_stopped(preview=text)
-
-        # Cleanup state
+        notify.transcription_success()
         recorder.cleanup()
 
-        print(text)
+        # Show preview with word count
+        preview = text[:60] + "..." if len(text) > 60 else text
+        print(f"{preview} ({word_count} words)")
         return 0
     else:
+        # Lazy import - only need notify for start
+        from . import notify
+
         # Start recording
         print("Recording...")
         sys.stdout.flush()
+
         if recorder.start_recording():
             notify.recording_started()
             return 0
         else:
-            print("Failed to start recording")
+            print("Mic unavailable - check System Settings > Privacy")
+            notify.transcription_error()
             return 1
 
 
 def transcribe_cmd(audio_path: str | None = None):
     """Transcribe an audio file or the last recording"""
+    from . import recorder, transcriber
+
     if audio_path:
         from pathlib import Path
         path = Path(audio_path)
@@ -100,6 +131,8 @@ def transcribe_cmd(audio_path: str | None = None):
 
 def history_cmd(limit: int = 10, search_query: str | None = None):
     """Show transcription history"""
+    from . import storage
+
     if search_query:
         records = storage.search(search_query, limit=limit)
     else:
@@ -126,6 +159,7 @@ def history_cmd(limit: int = 10, search_query: str | None = None):
 
 def clean_cmd():
     """Clean up clipboard text using AI"""
+    from . import clipboard
     from .ai import processor  # Lazy import - only load when needed
 
     text = clipboard.get()
@@ -145,6 +179,8 @@ def clean_cmd():
 
 def status_cmd():
     """Show current recording status"""
+    from . import recorder, storage
+
     if recorder.is_recording():
         print("Recording in progress...")
     else:

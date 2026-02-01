@@ -32,8 +32,11 @@ class Config:
 
     # Audio feedback
     enable_sounds: bool = True
-    start_sound: str = "Ping"
-    done_sound: str = "Glass"
+    start_sound: str = "Ping"      # Recording started
+    stop_sound: str = "Tink"       # Recording stopped
+    done_sound: str = "Glass"      # Transcription success
+    error_sound: str = "Basso"     # Hard error
+    warning_sound: str = "Sosumi"  # Soft warning (no speech detected)
 
     def __post_init__(self):
         """Ensure paths are Path objects"""

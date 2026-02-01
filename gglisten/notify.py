@@ -1,37 +1,9 @@
-"""macOS notifications and audio feedback"""
+"""macOS audio feedback for gglisten - sound-only, no persistent notifications"""
 
 import subprocess
 from pathlib import Path
 
 from .config import get_config
-
-
-def notify(
-    message: str,
-    title: str = "gGlisten",
-    sound: bool = True,
-    sound_name: str | None = None,
-):
-    """
-    Show a macOS notification.
-
-    Args:
-        message: The notification message
-        title: The notification title
-        sound: Whether to play a sound
-        sound_name: Name of sound to play (e.g., "Ping", "Glass")
-    """
-    if sound_name is None:
-        sound_name = "Ping"
-
-    sound_clause = f'sound name "{sound_name}"' if sound else ""
-
-    script = f'display notification "{message}" with title "{title}" {sound_clause}'
-    subprocess.Popen(
-        ["osascript", "-e", script],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
 
 
 def play_sound(sound_name: str, blocking: bool = False):
@@ -59,16 +31,27 @@ def play_sound(sound_name: str, blocking: bool = False):
 
 
 def recording_started():
-    """Sound and notification for recording start"""
+    """Sound for recording start - immediate signal to start talking"""
     config = get_config()
-    # Play sound first - this is the immediate signal to start talking
     play_sound(config.start_sound)
-    # Then show toast (async, may appear slightly after sound)
-    notify("Recording...", sound=False)
 
 
-def recording_stopped(preview: str | None = None):
-    """Notification and sound for recording stop/transcription complete"""
+def recording_stopped():
+    """Quick confirmation sound that recording stopped"""
     config = get_config()
-    message = preview[:50] + "..." if preview and len(preview) > 50 else preview or "Done"
-    notify(message, title="Transcribed", sound=True, sound_name=config.done_sound)
+    play_sound(config.stop_sound)
+
+
+def transcription_success():
+    """Success sound when transcription completes"""
+    config = get_config()
+    play_sound(config.done_sound)
+
+
+def transcription_error(error_type: str = "generic"):
+    """Error sound with type differentiation"""
+    config = get_config()
+    if error_type == "no_speech":
+        play_sound(config.warning_sound)  # Softer for "no speech detected"
+    else:
+        play_sound(config.error_sound)  # Stronger for actual failures
