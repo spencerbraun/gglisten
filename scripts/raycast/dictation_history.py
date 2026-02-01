@@ -1,4 +1,5 @@
-#!/Users/spencerbraun/.raycast_scripts/.venv/bin/python
+#!/usr/bin/env python3
+# NOTE: Update shebang to your venv path, e.g.: #!/path/to/.venv/bin/python
 
 # @raycast.title gGlisten History
 # @raycast.mode fullOutput

@@ -57,12 +57,27 @@ gglisten transcribe   # Transcribe last recording
 
 ## Configuration
 
-Default paths (in `gglisten/config.py`):
+### Environment Variables
 
-- Whisper model: `~/Library/Application Support/com.prakashjoshipax.VoiceInk/WhisperModels/ggml-large-v3-turbo-q5_0.bin`
-- Whisper CLI: `/opt/homebrew/bin/whisper-cli`
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GGLISTEN_WHISPER_MODEL` | `~/.local/share/gglisten/ggml-large-v3-turbo-q5_0.bin` | Path to whisper model |
+| `GGLISTEN_WHISPER_CLI` | `/opt/homebrew/bin/whisper-cli` | Path to whisper-cli binary |
+
+### Other Paths
+
 - Database: `~/.local/share/gglisten/transcriptions.db`
 - Temp files: `/tmp/gglisten/`
+- API key (for clean command): `~/.config/gglisten_anthropic_key`
+
+### Downloading a Model
+
+```bash
+# Download a model (e.g., large-v3-turbo quantized)
+mkdir -p ~/.local/share/gglisten
+curl -L -o ~/.local/share/gglisten/ggml-large-v3-turbo-q5_0.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin
+```
 
 ## License
 

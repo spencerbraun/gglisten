@@ -1,8 +1,9 @@
 """Configuration management for gglisten"""
 
+import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
-import json
 
 
 @dataclass
@@ -10,8 +11,12 @@ class Config:
     """Configuration for gglisten dictation system"""
 
     # Whisper model and CLI
-    whisper_model: Path = field(default_factory=lambda: Path.home() / "Library/Application Support/com.prakashjoshipax.VoiceInk/WhisperModels/ggml-large-v3-turbo-q5_0.bin")
-    whisper_cli: Path = field(default_factory=lambda: Path("/opt/homebrew/bin/whisper-cli"))
+    # Override with GGLISTEN_WHISPER_MODEL and GGLISTEN_WHISPER_CLI env vars
+    whisper_model: Path = field(default_factory=lambda: Path(
+        os.environ.get("GGLISTEN_WHISPER_MODEL",
+                       Path.home() / ".local/share/gglisten/ggml-large-v3-turbo-q5_0.bin")))
+    whisper_cli: Path = field(default_factory=lambda: Path(
+        os.environ.get("GGLISTEN_WHISPER_CLI", "/opt/homebrew/bin/whisper-cli")))
     language: str = "en"
 
     # Audio recording
