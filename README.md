@@ -57,12 +57,16 @@ gglisten transcribe   # Transcribe last recording
 
 ## Configuration
 
-### Environment Variables
+Create `~/.config/gglisten/config.json` to override defaults:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `GGLISTEN_WHISPER_MODEL` | `~/.local/share/gglisten/ggml-large-v3-turbo-q5_0.bin` | Path to whisper model |
-| `GGLISTEN_WHISPER_CLI` | `/opt/homebrew/bin/whisper-cli` | Path to whisper-cli binary |
+```json
+{
+  "whisper_model": "~/path/to/your/model.bin",
+  "whisper_cli": "/opt/homebrew/bin/whisper-cli"
+}
+```
+
+Alternatively, use environment variables: `GGLISTEN_WHISPER_MODEL`, `GGLISTEN_WHISPER_CLI`.
 
 ### Other Paths
 
