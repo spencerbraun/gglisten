@@ -102,9 +102,9 @@ def toggle():
             return 1
 
 
-def transcribe_cmd(audio_path: str | None = None):
+def transcribe_cmd(audio_path: str | None = None, paste: bool = True):
     """Transcribe an audio file or the last recording"""
-    from . import recorder, transcriber
+    from . import recorder, transcriber, clipboard, notify
 
     if audio_path:
         from pathlib import Path
@@ -114,18 +114,26 @@ def transcribe_cmd(audio_path: str | None = None):
 
     if not path or not path.exists():
         print("No audio file found")
+        notify.transcription_error()
         return 1
 
     try:
         text = transcriber.transcribe(path)
         if text:
-            print(text)
+            if paste:
+                clipboard.copy_and_paste(text)
+                notify.transcription_success()
+            word_count = len(text.split())
+            preview = text[:60] + "..." if len(text) > 60 else text
+            print(f"{preview} ({word_count} words)")
             return 0
         else:
             print("No speech detected")
+            notify.transcription_error("no_speech")
             return 1
     except Exception as e:
         print(f"Transcription failed: {e}")
+        notify.transcription_error()
         return 1
 
 
