@@ -64,16 +64,22 @@ def transcribe(audio_path: Path | None = None) -> str | None:
 
 
 def get_audio_duration(audio_path: Path) -> float | None:
-    """Get duration of audio file in seconds using sox"""
+    """Get duration of audio file in seconds using ffprobe"""
     config = get_config()
-    soxi = config.rec_bin.parent / "soxi"
+    ffprobe = config.ffmpeg_bin.parent / "ffprobe"
 
-    if not soxi.exists():
+    if not ffprobe.exists():
         return None
 
     try:
         result = subprocess.run(
-            [str(soxi), "-D", str(audio_path)],
+            [
+                str(ffprobe),
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                str(audio_path),
+            ],
             capture_output=True,
             text=True,
         )

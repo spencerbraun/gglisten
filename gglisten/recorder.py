@@ -92,16 +92,20 @@ def start_recording() -> bool:
     if config.audio_file.exists():
         config.audio_file.unlink()
 
-    # Start recording with sox/rec
-    # -r 16000: 16kHz sample rate (required by whisper)
-    # -c 1: mono channel
-    # -b 16: 16-bit depth
+    # Start recording with ffmpeg (better macOS device support than sox)
+    # -f avfoundation: macOS audio/video framework
+    # -i ":default": use default audio input device (respects System Settings)
+    # -ar 16000: 16kHz sample rate (required by whisper)
+    # -ac 1: mono channel
+    # -y: overwrite output file
     proc = subprocess.Popen(
         [
-            str(config.rec_bin),
-            "-r", str(config.sample_rate),
-            "-c", str(config.channels),
-            "-b", str(config.bit_depth),
+            str(config.ffmpeg_bin),
+            "-f", "avfoundation",
+            "-i", ":default",
+            "-ar", str(config.sample_rate),
+            "-ac", str(config.channels),
+            "-y",
             str(config.audio_file),
         ],
         stdout=subprocess.DEVNULL,

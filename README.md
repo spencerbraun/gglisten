@@ -13,7 +13,7 @@ Local speech-to-text using whisper.cpp with Raycast integration.
 
 - macOS
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (`brew install whisper-cpp`)
-- [sox](https://sox.sourceforge.net/) (`brew install sox`)
+- [ffmpeg](https://ffmpeg.org/) (`brew install ffmpeg`)
 - A whisper model (e.g., `ggml-large-v3-turbo-q5_0.bin`)
 
 ## Installation

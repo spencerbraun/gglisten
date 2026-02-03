@@ -41,11 +41,11 @@ class Config:
         "whisper_cli", "/opt/homebrew/bin/whisper-cli"))
     language: str = "en"
 
-    # Audio recording
-    rec_bin: Path = field(default_factory=lambda: Path("/opt/homebrew/bin/rec"))
+    # Audio recording (ffmpeg for better macOS device support)
+    ffmpeg_bin: Path = field(default_factory=lambda: _get_path(
+        "ffmpeg_bin", "/opt/homebrew/bin/ffmpeg"))
     sample_rate: int = 16000
     channels: int = 1
-    bit_depth: int = 16
 
     # Storage
     db_path: Path = field(default_factory=lambda: Path.home() / ".local/share/gglisten/transcriptions.db")
@@ -71,8 +71,8 @@ class Config:
             self.whisper_model = Path(self.whisper_model).expanduser()
         if isinstance(self.whisper_cli, str):
             self.whisper_cli = Path(self.whisper_cli)
-        if isinstance(self.rec_bin, str):
-            self.rec_bin = Path(self.rec_bin)
+        if isinstance(self.ffmpeg_bin, str):
+            self.ffmpeg_bin = Path(self.ffmpeg_bin)
         if isinstance(self.db_path, str):
             self.db_path = Path(self.db_path).expanduser()
         if isinstance(self.temp_dir, str):
