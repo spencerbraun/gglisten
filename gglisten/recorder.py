@@ -10,6 +10,10 @@ from enum import Enum
 from pathlib import Path
 
 from .config import get_config
+from .level_meter import LevelMeter
+
+# Global level meter instance
+_level_meter: LevelMeter | None = None
 
 
 class RecorderState(str, Enum):
@@ -129,6 +133,14 @@ def start_recording() -> bool:
     # Also save PID to separate file for robustness
     config.pid_file.write_text(str(proc.pid))
 
+    # Start level meter UI (wrapped in try/except to not break recording)
+    global _level_meter
+    try:
+        _level_meter = LevelMeter()
+        _level_meter.start()
+    except Exception:
+        _level_meter = None
+
     return True
 
 
@@ -137,6 +149,18 @@ def stop_recording() -> tuple[bool, float | None]:
     Stop audio recording.
     Returns (success, duration_seconds).
     """
+    global _level_meter
+
+    # Stop level meter UI first (wrapped in try/except to not break recording)
+    # Always try to stop via LevelMeter - it can find the PID from file even if
+    # _level_meter is None (which happens in a new process invocation)
+    try:
+        lm = _level_meter if _level_meter else LevelMeter()
+        lm.stop()
+    except Exception:
+        pass
+    _level_meter = None
+
     config = get_config()
     state = _read_state()
 
@@ -147,7 +171,7 @@ def stop_recording() -> tuple[bool, float | None]:
     if state.start_time:
         duration = time.time() - state.start_time
 
-    # Send SIGINT to gracefully stop sox
+    # Send SIGINT to gracefully stop ffmpeg
     try:
         os.kill(state.pid, signal.SIGINT)
         # Wait a bit for the process to finish writing
@@ -167,6 +191,39 @@ def get_audio_file() -> Path | None:
     if config.audio_file.exists():
         return config.audio_file
     return None
+
+
+def check_audio_has_content(audio_path: Path) -> bool:
+    """Check if audio file has actual content (not silence)"""
+    try:
+        result = subprocess.run(
+            [
+                "ffmpeg", "-i", str(audio_path),
+                "-af", "silencedetect=noise=-50dB:d=0.5",
+                "-f", "null", "-"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        # If the entire file is silence, silencedetect will show silence
+        # covering the whole duration
+        stderr = result.stderr
+        # Count silence periods - if there's only one that covers most of the file, it's silent
+        silence_starts = stderr.count("silence_start:")
+        silence_ends = stderr.count("silence_end:")
+
+        # If we see silence_start but no silence_end, entire file is silent
+        if silence_starts > 0 and silence_ends == 0:
+            return False
+        # If no silence detected at all, there's audio
+        if silence_starts == 0:
+            return True
+        # Otherwise there's some audio
+        return True
+    except Exception:
+        # If check fails, assume there's content
+        return True
 
 
 def cleanup():

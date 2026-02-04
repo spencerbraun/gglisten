@@ -1,0 +1,16 @@
+[package]
+name = "level-meter"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cpal = "0.15"
+objc = "0.2"
+cocoa = "0.26"
+core-graphics = "0.24"
+core-foundation = "0.10"
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true

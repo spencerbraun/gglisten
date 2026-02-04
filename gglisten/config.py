@@ -65,6 +65,11 @@ class Config:
     error_sound: str = "Basso"     # Hard error
     warning_sound: str = "Sosumi"  # Soft warning (no speech detected)
 
+    # Level meter UI
+    show_level_meter: bool = True
+    level_meter_app: Path = field(default_factory=lambda: _get_path(
+        "level_meter_app", "~/.local/share/gglisten/AudioLevelMeter.app/Contents/MacOS/AudioLevelMeter"))
+
     def __post_init__(self):
         """Ensure paths are Path objects"""
         if isinstance(self.whisper_model, str):
@@ -79,6 +84,8 @@ class Config:
             self.temp_dir = Path(self.temp_dir)
         if isinstance(self.anthropic_key_file, str):
             self.anthropic_key_file = Path(self.anthropic_key_file).expanduser()
+        if isinstance(self.level_meter_app, str):
+            self.level_meter_app = Path(self.level_meter_app).expanduser()
 
     @property
     def audio_file(self) -> Path:
