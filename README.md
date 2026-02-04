@@ -7,6 +7,7 @@ Local speech-to-text using whisper.cpp with Raycast integration.
 - **Fast local transcription** - Uses whisper.cpp, no cloud API needed
 - **Raycast integration** - Toggle recording with a hotkey
 - **Auto-paste** - Transcribed text is copied and pasted automatically
+- **Audio level meter** - Visual feedback during recording with real-time audio levels
 - **History** - SQLite database of all transcriptions
 
 ## Requirements
@@ -14,6 +15,7 @@ Local speech-to-text using whisper.cpp with Raycast integration.
 - macOS
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (`brew install whisper-cpp`)
 - [ffmpeg](https://ffmpeg.org/) (`brew install ffmpeg`)
+- [Rust](https://rustup.rs/) (for building the level meter)
 - A whisper model (e.g., `ggml-large-v3-turbo-q5_0.bin`)
 
 ## Installation
@@ -26,7 +28,46 @@ cd gglisten
 # Create a venv and install
 uv venv
 uv pip install -e .
+
+# Download a whisper model
+mkdir -p ~/.local/share/gglisten
+curl -L -o ~/.local/share/gglisten/ggml-large-v3-turbo-q5_0.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin
+
+# Build and install the audio level meter (optional but recommended)
+cd level-meter
+cargo build --release
+mkdir -p ~/.local/share/gglisten/AudioLevelMeter.app/Contents/MacOS
+cp target/release/level-meter ~/.local/share/gglisten/AudioLevelMeter.app/Contents/MacOS/AudioLevelMeter
+
+# Create Info.plist for the app bundle
+cat > ~/.local/share/gglisten/AudioLevelMeter.app/Contents/Info.plist << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>AudioLevelMeter</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.gglisten.audiolevelmetr</string>
+    <key>CFBundleName</key>
+    <string>AudioLevelMeter</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>LSUIElement</key>
+    <true/>
+</dict>
+</plist>
+EOF
+
+# Sign the app bundle
+codesign --force --sign - ~/.local/share/gglisten/AudioLevelMeter.app
+cd ..
 ```
+
+To disable the level meter, set `show_level_meter: false` in your config file.
 
 ## Raycast Setup
 
@@ -73,15 +114,7 @@ Alternatively, use environment variables: `GGLISTEN_WHISPER_MODEL`, `GGLISTEN_WH
 - Database: `~/.local/share/gglisten/transcriptions.db`
 - Temp files: `/tmp/gglisten/`
 - API key (for clean command): `~/.config/gglisten_anthropic_key`
-
-### Downloading a Model
-
-```bash
-# Download a model (e.g., large-v3-turbo quantized)
-mkdir -p ~/.local/share/gglisten
-curl -L -o ~/.local/share/gglisten/ggml-large-v3-turbo-q5_0.bin \
-  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin
-```
+- Level meter app: `~/.local/share/gglisten/AudioLevelMeter.app`
 
 ## License
 
