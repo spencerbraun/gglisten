@@ -37,6 +37,14 @@ After running `setup.sh`:
 2. Add the scripts directory: `<repo>/scripts/raycast/`
 3. Assign a hotkey to "gGlisten" (e.g., `⌥Space`)
 
+## Uninstall
+
+```bash
+./uninstall.sh
+```
+
+Removes the venv, models, database, and config. Does not remove the git repo.
+
 ## Usage
 
 ### Raycast Commands

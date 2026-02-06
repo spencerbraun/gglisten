@@ -133,24 +133,9 @@ mkdir -p "$HOME/.local/bin"
 ln -sf "$VENV_DIR/bin/gglisten" "$HOME/.local/bin/gglisten"
 print_success "Created symlink at ~/.local/bin/gglisten"
 
-# Setup Raycast scripts
-print_step "Setting up Raycast scripts..."
-RAYCAST_DIR="$SCRIPT_DIR/scripts/raycast"
-
-# Update shebangs in raycast scripts to use the venv
-for script in "$RAYCAST_DIR"/*.py; do
-    if [ -f "$script" ]; then
-        # Replace any shebang (first line starting with #!) with the venv python
-        sed -i '' "1s|^#!.*python.*|#!$VENV_DIR/bin/python|" "$script"
-    fi
-done
-print_success "Updated Raycast script shebangs"
-
-# Also update the user's local copy if they have raycast scripts elsewhere
-if [ -d "$HOME/.raycast_scripts" ]; then
-    print_warning "Note: You may need to update shebangs in ~/.raycast_scripts/ manually"
-    print_warning "Or re-add the scripts directory from: $RAYCAST_DIR"
-fi
+# Raycast scripts are ready to use (they call the fixed venv path)
+print_step "Raycast scripts ready at: $SCRIPT_DIR/scripts/raycast/"
+print_success "Scripts use: $VENV_DIR/bin/gglisten"
 
 # Build level meter (optional)
 echo ""
