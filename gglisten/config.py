@@ -34,11 +34,19 @@ def _get_path(key: str, default: str | Path) -> Path:
 class Config:
     """Configuration for gglisten dictation system"""
 
-    # Whisper model and CLI
+    # Transcription backend: "whisper" or "parakeet"
+    transcription_backend: str = field(default_factory=lambda: _user_config.get("transcription_backend", "whisper"))
+
+    # Whisper model and CLI (used when backend="whisper")
     whisper_model: Path = field(default_factory=lambda: _get_path(
         "whisper_model", "~/.local/share/gglisten/ggml-large-v3-turbo-q5_0.bin"))
     whisper_cli: Path = field(default_factory=lambda: _get_path(
         "whisper_cli", "/opt/homebrew/bin/whisper-cli"))
+
+    # Parakeet model (used when backend="parakeet")
+    parakeet_model: str = field(default_factory=lambda: _user_config.get(
+        "parakeet_model", "mlx-community/parakeet-tdt-0.6b-v3"))
+
     language: str = "en"
 
     # Audio recording (ffmpeg for better macOS device support)

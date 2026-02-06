@@ -1,13 +1,19 @@
 [project]
 name = "gglisten"
 version = "0.1.0"
-description = "Local speech-to-text using whisper.cpp with Raycast integration"
+description = "Local speech-to-text with Raycast integration. Supports whisper.cpp and parakeet-mlx backends."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "litellm",
     "instructor",
     "pydantic",
+]
+
+[project.optional-dependencies]
+parakeet = [
+    "numba>=0.58",  # Must come before parakeet-mlx to avoid old llvmlite
+    "parakeet-mlx",
 ]
 
 [project.scripts]

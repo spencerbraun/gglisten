@@ -161,6 +161,7 @@ unsafe fn create_floating_panel() -> id {
     // Configure panel properties
     let _: () = msg_send![panel, setFloatingPanel: YES];
     let _: () = msg_send![panel, setLevel: 25i64]; // kCGMaximumWindowLevel - very high
+    let _: () = msg_send![panel, setHidesOnDeactivate: NO]; // Stay visible when clicking other windows
     let _: () = msg_send![panel, setOpaque: NO];
     let clear_color: id = msg_send![class!(NSColor), clearColor];
     let _: () = msg_send![panel, setBackgroundColor: clear_color];

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# NOTE: Update shebang to your venv path, e.g.: #!/path/to/.venv/bin/python
+# ^ Shebang is updated by setup.sh to point to the gglisten venv
 
 # @raycast.title gGlisten Status
 # @raycast.mode compact

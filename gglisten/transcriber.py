@@ -1,14 +1,17 @@
-"""Whisper transcription using whisper-cli"""
+"""Transcription backends: whisper.cpp and parakeet-mlx"""
 
 import subprocess
 from pathlib import Path
 
 from .config import get_config
 
+# Lazy-loaded parakeet model (kept in memory for fast subsequent transcriptions)
+_parakeet_model = None
+
 
 def transcribe(audio_path: Path | None = None) -> str | None:
     """
-    Transcribe audio file using whisper-cli.
+    Transcribe audio file using the configured backend.
 
     Args:
         audio_path: Path to audio file. If None, uses the default recording path.
@@ -24,6 +27,16 @@ def transcribe(audio_path: Path | None = None) -> str | None:
     if not audio_path.exists():
         return None
 
+    if config.transcription_backend == "parakeet":
+        return _transcribe_parakeet(audio_path)
+    else:
+        return _transcribe_whisper(audio_path)
+
+
+def _transcribe_whisper(audio_path: Path) -> str | None:
+    """Transcribe using whisper-cli (whisper.cpp)"""
+    config = get_config()
+
     # Verify whisper-cli and model exist
     if not config.whisper_cli.exists():
         raise FileNotFoundError(f"whisper-cli not found at {config.whisper_cli}")
@@ -31,11 +44,6 @@ def transcribe(audio_path: Path | None = None) -> str | None:
         raise FileNotFoundError(f"Whisper model not found at {config.whisper_model}")
 
     # Run whisper-cli
-    # -m: model path
-    # -f: input file
-    # -l: language (or "auto" for auto-detect)
-    # --no-timestamps: don't include timestamps in output
-    # -np: no progress output (cleaner stdout)
     result = subprocess.run(
         [
             str(config.whisper_cli),
@@ -50,16 +58,37 @@ def transcribe(audio_path: Path | None = None) -> str | None:
     )
 
     if result.returncode != 0:
-        # Try to get error info
         error = result.stderr.strip() if result.stderr else "Unknown error"
         raise RuntimeError(f"Whisper transcription failed: {error}")
 
     # Clean up the output
     text = result.stdout.strip()
-
-    # whisper-cli sometimes outputs extra whitespace or newlines
     text = " ".join(text.split())
 
+    return text if text else None
+
+
+def _transcribe_parakeet(audio_path: Path) -> str | None:
+    """Transcribe using parakeet-mlx (Apple Silicon optimized)"""
+    global _parakeet_model
+
+    try:
+        from parakeet_mlx import from_pretrained
+    except ImportError:
+        raise ImportError(
+            "parakeet-mlx is not installed. Install it with: pip install parakeet-mlx"
+        )
+
+    config = get_config()
+
+    # Load model on first use (stays in memory for speed)
+    if _parakeet_model is None:
+        _parakeet_model = from_pretrained(config.parakeet_model)
+
+    # Transcribe
+    result = _parakeet_model.transcribe(str(audio_path))
+
+    text = result.text.strip() if result.text else None
     return text if text else None
 
 

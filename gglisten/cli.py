@@ -205,6 +205,67 @@ def status_cmd():
     return 0
 
 
+def config_cmd(key: str | None = None, value: str | None = None):
+    """Get or set configuration values"""
+    import json
+    from pathlib import Path
+
+    config_file = Path.home() / ".config/gglisten/config.json"
+    config_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # Load existing config
+    if config_file.exists():
+        try:
+            config = json.loads(config_file.read_text())
+        except json.JSONDecodeError:
+            config = {}
+    else:
+        config = {}
+
+    # Show all config
+    if key is None:
+        from .config import get_config
+        c = get_config()
+        print("Current configuration:")
+        print(f"  transcription_backend: {c.transcription_backend}")
+        print(f"  parakeet_model: {c.parakeet_model}")
+        print(f"  whisper_model: {c.whisper_model}")
+        print(f"  whisper_cli: {c.whisper_cli}")
+        print(f"  show_level_meter: {c.show_level_meter}")
+        print(f"\nConfig file: {config_file}")
+        return 0
+
+    # Handle aliases
+    key_aliases = {
+        "backend": "transcription_backend",
+        "model": "parakeet_model",
+    }
+    key = key_aliases.get(key, key)
+
+    # Get a specific key
+    if value is None:
+        from .config import get_config
+        c = get_config()
+        if hasattr(c, key):
+            print(getattr(c, key))
+            return 0
+        else:
+            print(f"Unknown config key: {key}")
+            return 1
+
+    # Set a value
+    # Handle boolean values
+    if value.lower() in ("true", "yes", "1"):
+        value = True
+    elif value.lower() in ("false", "no", "0"):
+        value = False
+
+    config[key] = value
+    config_file.write_text(json.dumps(config, indent=2) + "\n")
+    print(f"Set {key} = {value}")
+    return 0
+
+
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
@@ -232,6 +293,11 @@ def main():
     # status command
     subparsers.add_parser("status", help="Show current status")
 
+    # config command
+    config_parser = subparsers.add_parser("config", help="Get or set configuration")
+    config_parser.add_argument("key", nargs="?", help="Config key (e.g., backend, model)")
+    config_parser.add_argument("value", nargs="?", help="Value to set")
+
     args = parser.parse_args()
 
     if args.command == "toggle" or args.command is None:
@@ -245,6 +311,8 @@ def main():
         sys.exit(clean_cmd())
     elif args.command == "status":
         sys.exit(status_cmd())
+    elif args.command == "config":
+        sys.exit(config_cmd(args.key, args.value))
     else:
         parser.print_help()
         sys.exit(1)

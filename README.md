@@ -1,120 +1,132 @@
 # gglisten
 
-Local speech-to-text using whisper.cpp with Raycast integration.
+Local speech-to-text with Raycast integration. Press a hotkey to record, press again to transcribe and paste.
 
 ## Features
 
-- **Fast local transcription** - Uses whisper.cpp, no cloud API needed
+- **Two transcription backends:**
+  - **Parakeet** (recommended) - NVIDIA's state-of-the-art ASR via MLX, optimized for Apple Silicon
+  - **Whisper** - OpenAI's Whisper via whisper.cpp, works on any Mac
 - **Raycast integration** - Toggle recording with a hotkey
 - **Auto-paste** - Transcribed text is copied and pasted automatically
-- **Audio level meter** - Visual feedback during recording with real-time audio levels
-- **History** - SQLite database of all transcriptions
+- **Audio level meter** - Visual feedback during recording
+- **AI cleanup** - Optional post-processing to clean up transcriptions
 
-## Requirements
-
-- macOS
-- [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (`brew install whisper-cpp`)
-- [ffmpeg](https://ffmpeg.org/) (`brew install ffmpeg`)
-- [Rust](https://rustup.rs/) (for building the level meter)
-- A whisper model (e.g., `ggml-large-v3-turbo-q5_0.bin`)
-
-## Installation
+## Quick Start
 
 ```bash
-# Clone the repo
+# Clone and run setup
 git clone https://github.com/spencerbraun/gglisten.git
 cd gglisten
-
-# Create a venv and install
-uv venv
-uv pip install -e .
-
-# Download a whisper model
-mkdir -p ~/.local/share/gglisten
-curl -L -o ~/.local/share/gglisten/ggml-large-v3-turbo-q5_0.bin \
-  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin
-
-# Build and install the audio level meter (optional but recommended)
-cd level-meter
-cargo build --release
-mkdir -p ~/.local/share/gglisten/AudioLevelMeter.app/Contents/MacOS
-cp target/release/level-meter ~/.local/share/gglisten/AudioLevelMeter.app/Contents/MacOS/AudioLevelMeter
-
-# Create Info.plist for the app bundle
-cat > ~/.local/share/gglisten/AudioLevelMeter.app/Contents/Info.plist << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleExecutable</key>
-    <string>AudioLevelMeter</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.gglisten.audiolevelmetr</string>
-    <key>CFBundleName</key>
-    <string>AudioLevelMeter</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleVersion</key>
-    <string>1.0</string>
-    <key>LSUIElement</key>
-    <true/>
-</dict>
-</plist>
-EOF
-
-# Sign the app bundle
-codesign --force --sign - ~/.local/share/gglisten/AudioLevelMeter.app
-cd ..
+./setup.sh
 ```
 
-To disable the level meter, set `show_level_meter: false` in your config file.
+The setup script will:
+1. Create a virtual environment at `~/.local/share/gglisten/.venv`
+2. Install gglisten and dependencies
+3. Let you choose between Parakeet or Whisper backend
+4. Download the appropriate model
+5. Configure Raycast scripts
+6. Optionally build the audio level meter
 
 ## Raycast Setup
 
-1. Add `scripts/raycast/` to your Raycast script directories
-2. Update the shebang in each script to point to your venv's Python:
-   ```python
-   #!/path/to/your/.venv/bin/python
-   ```
+After running `setup.sh`:
+
+1. Open Raycast Settings → Extensions → Script Commands
+2. Add the scripts directory: `<repo>/scripts/raycast/`
+3. Assign a hotkey to "gGlisten" (e.g., `⌥Space`)
 
 ## Usage
 
 ### Raycast Commands
 
-- **gGlisten** - Toggle recording on/off. First press starts, second press stops and transcribes.
-- **gGlisten Status** - Show current recording status and last transcription
-- **gGlisten History** - Show recent transcriptions
-- **gGlisten Clean** - Clean up clipboard text using AI (requires Anthropic API key)
+| Command | Description |
+|---------|-------------|
+| **gGlisten** | Toggle recording. First press starts, second stops and transcribes. |
+| **gGlisten Status** | Show recording status and last transcription |
+| **gGlisten History** | Show recent transcriptions |
+| **gGlisten Clean** | Clean up clipboard text using AI |
+| **gGlisten Retranscribe** | Re-transcribe the last recording |
 
 ### CLI
 
 ```bash
 gglisten              # Toggle recording
-gglisten toggle       # Same as above
 gglisten status       # Show status
 gglisten history      # Show recent transcriptions
-gglisten transcribe   # Transcribe last recording
+gglisten config       # Show all configuration
+gglisten config backend parakeet  # Switch to parakeet
+gglisten config backend whisper   # Switch to whisper
 ```
 
 ## Configuration
 
-Create `~/.config/gglisten/config.json` to override defaults:
+Config file: `~/.config/gglisten/config.json`
 
 ```json
 {
-  "whisper_model": "~/path/to/your/model.bin",
-  "whisper_cli": "/opt/homebrew/bin/whisper-cli"
+  "transcription_backend": "parakeet",
+  "parakeet_model": "mlx-community/parakeet-tdt-0.6b-v3",
+  "whisper_model": "~/.local/share/gglisten/ggml-large-v3-turbo-q5_0.bin",
+  "show_level_meter": true
 }
 ```
 
-Alternatively, use environment variables: `GGLISTEN_WHISPER_MODEL`, `GGLISTEN_WHISPER_CLI`.
+### Quick config changes
 
-### Other Paths
+```bash
+# Switch backends
+gglisten config backend parakeet
+gglisten config backend whisper
 
-- Database: `~/.local/share/gglisten/transcriptions.db`
-- Temp files: `/tmp/gglisten/`
-- API key (for clean command): `~/.config/gglisten_anthropic_key`
-- Level meter app: `~/.local/share/gglisten/AudioLevelMeter.app`
+# Disable level meter
+gglisten config show_level_meter false
+
+# Use a different parakeet model
+gglisten config parakeet_model mlx-community/parakeet-tdt-1.1b-v2
+```
+
+## Requirements
+
+- macOS (Apple Silicon recommended for Parakeet)
+- [ffmpeg](https://ffmpeg.org/) (`brew install ffmpeg`)
+- [uv](https://github.com/astral-sh/uv) (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- [Rust](https://rustup.rs/) (optional, for level meter)
+
+For Whisper backend only:
+- [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (`brew install whisper-cpp`)
+
+## Paths
+
+| Item | Location |
+|------|----------|
+| Virtual environment | `~/.local/share/gglisten/.venv` |
+| Config | `~/.config/gglisten/config.json` |
+| Database | `~/.local/share/gglisten/transcriptions.db` |
+| Whisper model | `~/.local/share/gglisten/ggml-large-v3-turbo-q5_0.bin` |
+| Level meter | `~/.local/share/gglisten/AudioLevelMeter.app` |
+| Anthropic API key | `~/.config/gglisten_anthropic_key` |
+
+## Troubleshooting
+
+**"parakeet-mlx not installed"**
+```bash
+~/.local/share/gglisten/.venv/bin/pip install numba>=0.58 parakeet-mlx
+```
+
+**"whisper-cli not found"**
+```bash
+brew install whisper-cpp
+```
+
+**Level meter not showing**
+```bash
+# Rebuild and re-sign
+cd level-meter && cargo build --release
+cp target/release/level-meter ~/.local/share/gglisten/AudioLevelMeter.app/Contents/MacOS/AudioLevelMeter
+codesign --force --sign - ~/.local/share/gglisten/AudioLevelMeter.app
+```
 
 ## License
 
