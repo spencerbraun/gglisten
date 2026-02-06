@@ -133,9 +133,26 @@ mkdir -p "$HOME/.local/bin"
 ln -sf "$VENV_DIR/bin/gglisten" "$HOME/.local/bin/gglisten"
 print_success "Created symlink at ~/.local/bin/gglisten"
 
-# Raycast scripts are ready to use (they call the fixed venv path)
-print_step "Raycast scripts ready at: $SCRIPT_DIR/scripts/raycast/"
-print_success "Scripts use: $VENV_DIR/bin/gglisten"
+# Raycast scripts setup
+print_step "Setting up Raycast scripts..."
+RAYCAST_SRC="$SCRIPT_DIR/scripts/raycast"
+
+# Check for existing Raycast scripts directory
+if [ -d "$HOME/.raycast_scripts" ]; then
+    echo "  Found existing Raycast scripts at ~/.raycast_scripts"
+    read -p "Copy gglisten scripts there? [Y/n]: " copy_scripts
+    copy_scripts=${copy_scripts:-Y}
+    if [[ "$copy_scripts" =~ ^[Yy]$ ]]; then
+        # Remove old Python versions if they exist
+        rm -f "$HOME/.raycast_scripts/dictation"*.py 2>/dev/null
+        # Copy new shell scripts
+        cp "$RAYCAST_SRC"/gglisten*.sh "$HOME/.raycast_scripts/"
+        print_success "Copied scripts to ~/.raycast_scripts/"
+    fi
+else
+    print_success "Scripts ready at: $RAYCAST_SRC/"
+    echo "  Add this directory to Raycast, or copy scripts to your Raycast folder"
+fi
 
 # Build level meter (optional)
 echo ""
