@@ -52,6 +52,13 @@ def _transcribe_whisper(audio_path: Path) -> str | None:
             "-l", config.language,
             "--no-timestamps",
             "-np",
+            "--max-context", "0",
+            "--no-fallback",
+            "--entropy-thold", "2.4",
+            "--temperature", "0.2",
+            "--prompt", "Hello, how are you doing? Nice to meet you.",
+            "--vad",
+            "--vad-model", str(config.whisper_model.parent / "ggml-silero-vad.bin"),
         ],
         capture_output=True,
         text=True,
@@ -85,8 +92,8 @@ def _transcribe_parakeet(audio_path: Path) -> str | None:
     if _parakeet_model is None:
         _parakeet_model = from_pretrained(config.parakeet_model)
 
-    # Transcribe
-    result = _parakeet_model.transcribe(str(audio_path))
+    # Transcribe with chunking to avoid GPU OOM on longer recordings
+    result = _parakeet_model.transcribe(str(audio_path), chunk_duration=120.0, overlap_duration=15.0)
 
     text = result.text.strip() if result.text else None
     return text if text else None

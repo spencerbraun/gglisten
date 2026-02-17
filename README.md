@@ -113,6 +113,7 @@ For Whisper backend only:
 | Config | `~/.config/gglisten/config.json` |
 | Database | `~/.local/share/gglisten/transcriptions.db` |
 | Whisper model | `~/.local/share/gglisten/ggml-large-v3-turbo-q5_0.bin` |
+| Silero VAD model | `~/.local/share/gglisten/ggml-silero-vad.bin` |
 | Level meter | `~/.local/share/gglisten/AudioLevelMeter.app` |
 | Anthropic API key | `~/.config/gglisten_anthropic_key` |
 
@@ -127,6 +128,17 @@ For Whisper backend only:
 ```bash
 brew install whisper-cpp
 ```
+
+**Whisper repeating/hallucinating text**
+
+The whisper backend uses VAD (voice activity detection) and tuned parameters to minimize hallucination. If you still see repeated phrases, try switching to the parakeet backend:
+```bash
+gglisten config backend parakeet
+```
+
+**Parakeet GPU out of memory on long recordings**
+
+Parakeet uses chunked transcription (2-minute segments) to stay within GPU memory limits. If you still hit OOM errors, ensure you're on the latest version of gglisten.
 
 **Level meter not showing**
 ```bash

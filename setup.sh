@@ -116,6 +116,17 @@ else
     else
         print_success "Whisper model already exists"
     fi
+
+    # Download Silero VAD model for whisper (used to reduce hallucination)
+    VAD_PATH="$INSTALL_DIR/ggml-silero-vad.bin"
+    if [ ! -f "$VAD_PATH" ]; then
+        print_step "Downloading Silero VAD model (~1MB)..."
+        curl -L --progress-bar -o "$VAD_PATH" \
+            "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-silero-v5.1.2.bin"
+        print_success "Downloaded VAD model"
+    else
+        print_success "VAD model already exists"
+    fi
 fi
 
 # Create config
