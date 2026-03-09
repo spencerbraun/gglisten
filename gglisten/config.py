@@ -110,6 +110,22 @@ class Config:
         """Path to the recording PID file"""
         return self.temp_dir / "rec.pid"
 
+    # Daemon paths
+    @property
+    def daemon_socket(self) -> Path:
+        """Path to the daemon Unix socket"""
+        return self.temp_dir / "daemon.sock"
+
+    @property
+    def daemon_pid_file(self) -> Path:
+        """Path to the daemon PID file"""
+        return self.temp_dir / "daemon.pid"
+
+    @property
+    def daemon_log_file(self) -> Path:
+        """Path to the daemon log file"""
+        return Path.home() / ".local/share/gglisten/daemon.log"
+
     def ensure_dirs(self):
         """Create necessary directories"""
         self.temp_dir.mkdir(parents=True, exist_ok=True)

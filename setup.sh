@@ -213,6 +213,21 @@ EOF
     fi
 fi
 
+# Daemon setup (optional)
+echo ""
+read -p "Install daemon for instant transcription? (auto-starts at login) [Y/n]: " install_daemon
+install_daemon=${install_daemon:-Y}
+
+if [[ "$install_daemon" =~ ^[Yy]$ ]]; then
+    print_step "Installing daemon launchd service..."
+    "$VENV_DIR/bin/gglisten" daemon install
+    print_success "Daemon installed and will auto-start at login"
+    echo ""
+    print_step "Starting daemon now..."
+    "$VENV_DIR/bin/gglisten" daemon start
+    echo "  (Model loading may take 5-10s on first start)"
+fi
+
 # Final instructions
 echo ""
 echo "╔══════════════════════════════════════╗"
@@ -232,4 +247,11 @@ echo "     gglisten status"
 echo ""
 echo "Configuration: $CONFIG_DIR/config.json"
 echo "To switch backends: gglisten config backend <whisper|parakeet>"
+echo ""
+echo "Daemon commands:"
+echo "  gglisten daemon start     - Start daemon in background"
+echo "  gglisten daemon stop      - Stop daemon"
+echo "  gglisten daemon status    - Check daemon status"
+echo "  gglisten daemon install   - Auto-start at login (launchd)"
+echo "  gglisten daemon uninstall - Remove auto-start"
 echo ""

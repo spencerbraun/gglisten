@@ -9,7 +9,46 @@ from .config import get_config
 
 
 def toggle():
-    """Toggle recording on/off. Main entry point for dictation."""
+    """Toggle recording on/off. Tries daemon first, falls back to direct mode."""
+    # Fast path: try daemon (minimal imports, ~5ms)
+    from .client import send_command, is_daemon_running
+
+    if is_daemon_running():
+        resp = send_command("toggle", timeout=30.0)
+        if resp is None:
+            print("Daemon not responding, falling back to direct mode")
+            return _toggle_direct()
+
+        status = resp.get("status", "")
+        if status == "recording_started":
+            print("Recording...")
+            return 0
+        elif status == "transcription_complete":
+            text = resp.get("text", "")
+            words = resp.get("words", len(text.split()))
+            preview = text[:60] + "..." if len(text) > 60 else text
+            print(f"{preview} ({words} words)")
+            return 0
+        elif status == "busy":
+            print(f"Daemon busy ({resp.get('state', 'unknown')}), try again")
+            return 1
+        elif status == "error":
+            error = resp.get("error", "Unknown error")
+            if "No speech" in error:
+                print("No speech detected")
+            else:
+                print(f"Error: {error}")
+            return 1
+        else:
+            print(f"Unexpected response: {resp}")
+            return 1
+
+    # Fallback: direct mode (no daemon running)
+    return _toggle_direct()
+
+
+def _toggle_direct():
+    """Original toggle logic — direct mode without daemon."""
     from . import recorder  # Always needed
 
     if recorder.is_recording():
@@ -188,11 +227,32 @@ def clean_cmd():
 def status_cmd():
     """Show current recording status"""
     from . import recorder, storage
+    from .client import is_daemon_running
 
-    if recorder.is_recording():
-        print("Recording in progress...")
+    # Check daemon first
+    if is_daemon_running():
+        from .client import send_command
+        resp = send_command("status", timeout=2.0)
+        if resp:
+            state = resp.get("state", "unknown")
+            backend = resp.get("backend", "unknown")
+            model_loaded = resp.get("model_loaded", False)
+            pid = resp.get("pid")
+            print(f"Daemon: running (PID {pid})" if pid else "Daemon: running")
+            print(f"  Backend: {backend}, Model loaded: {model_loaded}")
+            if state == "recording":
+                dur = resp.get("duration", 0)
+                print(f"  State: recording ({dur:.1f}s)")
+            else:
+                print(f"  State: {state}")
+        else:
+            print("Daemon: running but not responding")
     else:
-        print("Idle")
+        print("Daemon: not running (using direct mode)")
+        if recorder.is_recording():
+            print("Recording in progress...")
+        else:
+            print("State: idle")
 
     # Show recent transcription
     latest = storage.get_latest()
@@ -266,6 +326,45 @@ def config_cmd(key: str | None = None, value: str | None = None):
     return 0
 
 
+def daemon_cmd(action: str):
+    """Manage the gglisten daemon."""
+    from . import lifecycle
+
+    if action == "start":
+        lifecycle.start_daemon(foreground=False)
+    elif action == "stop":
+        lifecycle.stop_daemon()
+    elif action == "restart":
+        lifecycle.restart_daemon()
+    elif action == "foreground":
+        lifecycle.start_daemon(foreground=True)
+    elif action == "status":
+        info = lifecycle.daemon_status()
+        if info.get("running"):
+            pid = info.get("pid", "?")
+            state = info.get("state", "unknown")
+            backend = info.get("backend", "unknown")
+            model = info.get("model_loaded", False)
+            print(f"Daemon running (PID {pid})")
+            print(f"  State: {state}")
+            print(f"  Backend: {backend}")
+            print(f"  Model loaded: {model}")
+            if not info.get("responsive", True) is True:
+                if info.get("responsive") is False:
+                    print("  WARNING: Not responding to commands")
+        else:
+            print("Daemon is not running")
+    elif action == "install":
+        lifecycle.install_launchd()
+    elif action == "uninstall":
+        lifecycle.uninstall_launchd()
+    else:
+        print(f"Unknown daemon action: {action}")
+        print("Usage: gglisten daemon <start|stop|restart|status|foreground|install|uninstall>")
+        return 1
+    return 0
+
+
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(
@@ -298,6 +397,14 @@ def main():
     config_parser.add_argument("key", nargs="?", help="Config key (e.g., backend, model)")
     config_parser.add_argument("value", nargs="?", help="Value to set")
 
+    # daemon command
+    daemon_parser = subparsers.add_parser("daemon", help="Manage the gglisten daemon")
+    daemon_parser.add_argument(
+        "action",
+        choices=["start", "stop", "restart", "status", "foreground", "install", "uninstall"],
+        help="Daemon action",
+    )
+
     args = parser.parse_args()
 
     if args.command == "toggle" or args.command is None:
@@ -313,6 +420,8 @@ def main():
         sys.exit(status_cmd())
     elif args.command == "config":
         sys.exit(config_cmd(args.key, args.value))
+    elif args.command == "daemon":
+        sys.exit(daemon_cmd(args.action))
     else:
         parser.print_help()
         sys.exit(1)
